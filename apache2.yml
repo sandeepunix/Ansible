@@ -1,0 +1,56 @@
+---
+- hosts: webserver
+  become: true
+
+  tasks: 
+      - name: install EPEL release for mod-wsgi
+        yum: name=epel-release state=present
+
+      - name: install httpd
+        yum: name={{ item }} state=installed
+        with_items:
+            - httpd
+            - python-pip
+            - python-virtualenv
+            - python-devel
+            - mod_wsgi
+
+      - name: install uwsgi
+        pip: name={{ item }} state=present
+        with_items:
+               - gunicorn 
+               - flask
+
+      - name: check httpd
+        service: name=httpd state=started enabled=yes
+      
+      - name: check httpd port
+        wait_for:
+           port: 80
+
+      - name: apache mod wsgi  enabled
+        apache2_module: state=present name=wsgi
+        notify: restart apache
+      
+      - name: copy application
+        copy: src=demo/app/ dest=/var/www/demo mode=0755
+        notify: restart apache
+
+      - name: copy config file
+        copy: src=demo/demo.conf dest=/etc/httpd/sites-avilable/ mode=0755
+        notify: restart apache
+
+      - name: setup python virtual environment
+        pip: requirements=/var/www/demo/requirement.txt virtualenv=/var/www/demo/.venv
+        notify: restart apache
+
+      - name: make directory
+        file: path=/etc/httpd/sites-enabled state=directory
+        notify: restart apache
+
+      - name: activate link for demo webportal
+        file: src=/etc/httpd/sites-avilable/demo.conf dest=/etc/httpd/sites-enabled/demo.conf state=link
+        notify: restart apache
+  handlers:
+      - name: restart apache
+        service: name=httpd state=restarted

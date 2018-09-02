@@ -1,0 +1,24 @@
+---
+
+- hosts: lb
+  become: true
+
+  tasks:
+     - name: install tools
+       yum: name={{ item }} state=present 
+       with_items:
+          - python-httplib2
+
+     - name: Install EPEL release for nginx
+       yum: name=epel-release state=present
+
+     - name: install nginx
+       yum:  name=nginx state=installed
+
+     - name: state nginx services
+       service: name=nginx state=started enabled=yes
+
+
+  handlers:
+     - name: restart nginx
+       service: name=nginx state=restarted

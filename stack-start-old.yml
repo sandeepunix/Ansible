@@ -1,0 +1,31 @@
+---
+
+- hosts: webserver
+  - tasks:
+    service: name=httpd state=stopped
+
+- hosts: loadbalancer
+  - tasks:
+    service: name=nginx state=stopped
+
+- hosts: production
+  - tasks:
+    service: name=httpd state=stopped
+
+- hosts: database
+  - tasks:
+    service: name=mysqld state=restarted
+
+
+- hosts: loadbalancer
+  - tasks:
+    service: name=nginx state=started
+
+- hosts: production
+  - tasks:
+    service: name=httpd state=started
+
+- hosts: webserver
+  - tasks:
+    service: name=httpd state=started
+

@@ -1,0 +1,57 @@
+---
+
+- hosts: production
+  
+  tasks:
+    - name: install epel package
+      yum: name=epel-release state=present
+
+    - name: install packages for curl and apache
+      yum: name={{ item }} state=installed
+      with_items:
+             - python-pip
+             - httpd
+             - curl
+             - python-virtualenv
+             - python-devel
+             - mod_wsgi
+             - mysql-connector-python
+             - mysql-devel 
+             - gcc
+
+    - name: install flask
+      pip: name=flask state=present
+
+    - name: install mysql client
+      pip: name=MySQL-python state=present
+    
+    - name: start httpd serivce
+      service: name=httpd state=started
+ 
+    - name: copy application and configuration files
+      copy: src=demo/app/ dest=/var/www/demo mode=0755
+      notify: restart httpd
+
+    - name: copy config file
+      copy: src=demo/demo.conf dest=/etc/httpd/sites-avilable/ mode=0755
+      notify: restart httpd
+
+    - name: copy config file
+      copy: src=demo/demo.conf dest=/etc/httpd/conf.d/ mode=0755
+      notify: restart httpd
+
+    - name: setup python virtual environment
+      pip: requirements=/var/www/demo/requirements.txt virtualenv=/var/www/demo/.venv
+      notify: restart httpd
+
+    - name: make directory
+      file: path=/etc/httpd/sites-enabled state=directory
+      notify: restart httpd
+
+    - name: activate link for demo webportal
+      file: src=/etc/httpd/sites-avilable/demo.conf dest=/etc/httpd/sites-enabled/demo.conf state=link
+      notify: restart httpd
+
+  handlers:
+    - name: restart httpd
+      service: name=httpd state=restarted
